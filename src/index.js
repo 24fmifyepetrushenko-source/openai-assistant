@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import chalk from "chalk";
 import { config as dotEnvConfig } from "dotenv";
 import { getFileId, getVectorStoreId } from "./file_manager.js";
@@ -12,52 +11,61 @@ import {
   getLastResponse,
 } from "./thread_manager.js";
 import { runAssistantOnThread, getRunStatus } from "./run_manager.js";
+import { createOpenAIClient } from "./openai_client.js";
 
 dotEnvConfig({ path: ".env" });
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = await createOpenAIClient();
 
-async function main() {
+async function main(openAiInstance) {
   let runStatus;
+  let runCount = 0;
+  const maxRunsEnv = Number.parseInt(process.env.MAX_RUNS ?? "", 10);
+  const maxRuns = Number.isFinite(maxRunsEnv) && maxRunsEnv > 0 ? maxRunsEnv : Infinity;
+  const pollIntervalEnv = Number.parseInt(
+    process.env.POLL_INTERVAL_MS ?? "2000",
+    10
+  );
+  const pollInterval = Number.isFinite(pollIntervalEnv) && pollIntervalEnv > 0 ? pollIntervalEnv : 2000;
 
   try {
     // 1. Отримання ID файлу
-    const fileId = await getFileId(openai, process.env.FILE_NAME);
+    const fileId = await getFileId(openAiInstance, process.env.FILE_NAME);
 
     console.log(`✔️ Id файлу: ${chalk.grey.bold(fileId)}`);
 
     // 2. Отримання ID асистента
     const assistantId = await getAssistantId(
-      openai,
+      openAiInstance,
       process.env.ASSISTANT_NAME
     );
 
     console.log(`✔️ Id асистента: ${chalk.grey.bold(assistantId)}`);
 
     // 3. Завантажуємо файли у асистента. (Отримуємо векторне сховище)
-    const vectorStoreId = await getVectorStoreId(openai, [fileId]);
+    const vectorStoreId = await getVectorStoreId(openAiInstance, [fileId]);
 
     console.log(`✔️ Id векторного сховища: ${chalk.grey.bold(vectorStoreId)}`);
 
-    await updateAssistantWithVectorStore(openai, assistantId, vectorStoreId);
+    await updateAssistantWithVectorStore(openAiInstance, assistantId, vectorStoreId);
 
     // 4. Отримання ID треду
-    const threadId = await getThreadId(openai);
+    const threadId = await getThreadId(openAiInstance);
 
     console.log(`✔️ Id треду: ${chalk.grey.bold(threadId)}`);
 
     // Логіка надсилання повідомлень і отримування відповідей
-    while (true) {
+    while (runCount < maxRuns) {
       const message = await askUserMessage();
 
       // 5. Додавання повідомлення в тред
-      await addMessageToThread(openai, threadId, message);
+      await addMessageToThread(openAiInstance, threadId, message);
 
       //// Якщо ви хочете додати файл до повідомлення, використовуйте цей код
       // await addMessageToThread(openai, threadId, message, fileId);
 
       // 6. Запуск асистента
       const runObject = await runAssistantOnThread(
-        openai,
+        openAiInstance,
         threadId,
         assistantId
       );
@@ -65,17 +73,19 @@ async function main() {
       // 7. Очікування відповіді
       while (true) {
         // перевіряємо статус запуску кожні 2 секунди
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        runStatus = await getRunStatus(openai, threadId, runObject.id);
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        runStatus = await getRunStatus(openAiInstance, threadId, runObject.id);
         if (runStatus.status === "completed" || runStatus.status === "failed") {
           break;
         }
       }
 
       // 8. Отримання відповіді
-      const lastMessage = await getLastResponse(openai, threadId);
+      const lastMessage = await getLastResponse(openAiInstance, threadId);
       console.log(`\n💬 Відповідь асистента: \n ${chalk.cyan.bold(lastMessage)}
       `);
+
+      runCount += 1;
     }
   } catch (error) {
     console.error(chalk.red("Помилка: "), error);
@@ -88,6 +98,11 @@ async function main() {
  * @returns {Promise<string>} The user message.
  */
 async function askUserMessage() {
+  if (process.env.TEST_USER_MESSAGE) {
+    const message = process.env.TEST_USER_MESSAGE;
+    delete process.env.TEST_USER_MESSAGE;
+    return message;
+  }
   return new Promise((resolve, reject) => {
     process.stdout.write(
       chalk.green.bold("\n Введіть повідомлення для асистента: ")
@@ -99,4 +114,4 @@ async function askUserMessage() {
   });
 }
 
-main();
+await main(openai);
