@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { HttpsProxyAgent } from "https-proxy-agent";
 
 export async function createOpenAIClient() {
   if (process.env.USE_MOCK_OPENAI === "true") {
@@ -10,5 +11,12 @@ export async function createOpenAIClient() {
     throw new Error("❌ Не вказано OPENAI_API_KEY у змінних середовища.");
   }
 
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const proxyUrl = process.env.HTTPS_PROXY ?? process.env.HTTP_PROXY;
+  // HttpsProxyAgent створює http.Agent з підтримкою HTTPS-проксі, щоб SDK одразу працював із системними налаштуваннями.
+  const proxyAgent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
+
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    ...(proxyAgent && { httpAgent: proxyAgent }),
+  });
 }
