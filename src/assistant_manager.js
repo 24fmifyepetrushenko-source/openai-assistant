@@ -60,6 +60,8 @@ export async function getAssistantId(openAiInstance, assistantName) {
       )
     );
 
+    await _refreshAssistantInstructions(openAiInstance, latestAssistant);
+
     return latestAssistant.id;
   }
 
@@ -69,6 +71,8 @@ export async function getAssistantId(openAiInstance, assistantName) {
       targetAssistants[0].id
     )}`
   );
+  await _refreshAssistantInstructions(openAiInstance, targetAssistants[0]);
+
   return targetAssistants[0].id;
 }
 
@@ -159,4 +163,27 @@ function _getAssistantInstructions() {
   }
   const assistantInstructions = fs.readFileSync(filePath, "utf8");
   return assistantInstructions;
+}
+
+async function _refreshAssistantInstructions(openAiInstance, assistant) {
+  if (!assistant?.id) {
+    return;
+  }
+
+  const newInstructions = _getAssistantInstructions();
+  const existingInstructions = assistant.instructions ?? "";
+
+  if (existingInstructions === newInstructions) {
+    return;
+  }
+
+  try {
+    await openAiInstance.beta.assistants.update(assistant.id, {
+      instructions: newInstructions,
+    });
+  } catch (error) {
+    throw new Error(
+      chalk.red("❌ Не вдалося оновити інструкції асистента: ") + error.message
+    );
+  }
 }
