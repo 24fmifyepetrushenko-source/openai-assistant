@@ -3,6 +3,7 @@ import { fileURLToPath } from "url";
 import path from "path";
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { config as dotEnvConfig } from "dotenv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,13 +11,19 @@ const projectRoot = path.resolve(__dirname, "..");
 
 const ANSI_REGEX = /\u001b\[[0-9;]*m/g;
 
+dotEnvConfig({ path: ".env" });
+
 test(
   "CLI запускається та повертає реальну відповідь від OpenAI",
   { timeout: 120_000 },
   async () => {
+
+      console.log('process.env', process.env);
+
+
     assert.ok(
       process.env.OPENAI_API_KEY,
-      "Тест потребує реального OPENAI_API_KEY у змінних середовища"
+      "Не знайдено OPENAI_API_KEY у змінних оточення"
     );
 
     const env = {

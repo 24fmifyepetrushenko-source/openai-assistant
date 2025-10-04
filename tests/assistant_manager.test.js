@@ -11,7 +11,7 @@ function createTempInstructionsDir(content) {
   return tempDir;
 }
 
-test("оновлює інструкції для існуючого асистента", async () => {
+test("оновлює системні інструкції для існуючого асистента", async () => {
   const originalFolderName = process.env.FOLDER_NAME;
   const tempDir = createTempInstructionsDir("Нові інструкції");
   process.env.FOLDER_NAME = tempDir;
