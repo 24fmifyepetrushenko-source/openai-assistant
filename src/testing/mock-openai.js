@@ -1,11 +1,13 @@
 import path from "path";
 
+// Створює новий унікальний ID із префіксом для тестових об'єктів.
 function createId(prefix, store) {
   const next = store.nextId + 1;
   store.nextId = next;
   return `${prefix}_${next}`;
 }
 
+// Перетворює текст у формат, який очікує OpenAI для повідомлень.
 function mapContent(content) {
   if (Array.isArray(content)) {
     return content;
@@ -19,8 +21,10 @@ function mapContent(content) {
   ];
 }
 
+// Цей клас підміняє реальний OpenAI у тестах і поводиться дуже схоже.
 export class MockOpenAI {
   constructor() {
+    // Зберігаємо внутрішній стан, щоб імітувати файли, треди та запуски.
     this.state = {
       files: [],
       vectorStores: [],
@@ -30,6 +34,7 @@ export class MockOpenAI {
       nextId: 0,
     };
 
+    // Методи для роботи з файлами у моковому режимі.
     this.files = {
       list: async () => ({ data: [...this.state.files] }),
       create: async ({ file }) => {
@@ -45,9 +50,12 @@ export class MockOpenAI {
       },
     };
 
+    // Блок beta містить підмножини API як у справжньому SDK.
     this.beta = {
       vectorStores: {
+        // Повертаємо список штучних векторних сховищ.
         list: async () => ({ data: [...this.state.vectorStores] }),
+        // Створюємо нове сховище та зберігаємо його в стані.
         create: async ({ name, file_ids, expires_after }) => {
           const id = createId("vs", this.state);
           const vectorStore = {
@@ -67,7 +75,9 @@ export class MockOpenAI {
         },
       },
       assistants: {
+        // Повертаємо список створених тестових асистентів.
         list: async () => ({ data: [...this.state.assistants] }),
+        // Створюємо нового асистента з потрібними параметрами.
         create: async ({ name, instructions, model, tools, temperature }) => {
           const id = createId("asst", this.state);
           const assistant = {
@@ -91,6 +101,7 @@ export class MockOpenAI {
         },
       },
       threads: {
+        // Створюємо новий тред і додаємо його до карти.
         create: async () => {
           const id = createId("thread", this.state);
           this.state.threads.set(id, {
@@ -100,6 +111,7 @@ export class MockOpenAI {
           return { id };
         },
         messages: {
+          // Додаємо нове повідомлення у тред.
           create: async (threadId, messageObject) => {
             const thread = this._getThread(threadId);
             thread.messages.push({
@@ -109,6 +121,7 @@ export class MockOpenAI {
               created_at: Math.floor(Date.now() / 1000),
             });
           },
+          // Повертаємо копії всіх повідомлень у треді.
           list: async (threadId) => {
             const thread = this._getThread(threadId);
             return {
@@ -117,6 +130,7 @@ export class MockOpenAI {
           },
         },
         runs: {
+          // Створюємо run і запам'ятовуємо, що він очікує відповідь.
           create: async (threadId, { assistant_id }) => {
             const runId = createId("run", this.state);
             this.state.runs.set(runId, {
@@ -127,6 +141,7 @@ export class MockOpenAI {
             });
             return { id: runId };
           },
+          // Повертаємо статус run і за потреби створюємо мокову відповідь асистента.
           retrieve: async (threadId, runId) => {
             const run = this.state.runs.get(runId);
             if (!run) {
@@ -145,6 +160,7 @@ export class MockOpenAI {
             );
 
             if (!hasAssistantMessage) {
+              // Якщо асистент ще не відповів, генеруємо простий мокований текст.
               const lastUserMessage = [...thread.messages]
                 .reverse()
                 .find((message) => message.role === "user");
@@ -180,6 +196,7 @@ export class MockOpenAI {
     };
   }
 
+  // Повертаємо тред зі сховища стану або кидаємо помилку, якщо його немає.
   _getThread(threadId) {
     const thread = this.state.threads.get(threadId);
     if (!thread) {

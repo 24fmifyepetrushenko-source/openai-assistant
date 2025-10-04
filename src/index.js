@@ -16,7 +16,9 @@ import { createOpenAIClient } from "./openai_client.js";
 dotEnvConfig({ path: ".env" });
 const openai = await createOpenAIClient();
 
+// Ця головна функція запускає всі кроки: шукає файли, асистента і веде діалог.
 async function main(openAiInstance) {
+  // Готуємо службові змінні для контролю кількості запусків і затримки.
   let runStatus;
   let runCount = 0;
   const maxRunsEnv = Number.parseInt(process.env.MAX_RUNS ?? "", 10);
@@ -27,6 +29,7 @@ async function main(openAiInstance) {
   );
   const pollInterval = Number.isFinite(pollIntervalEnv) && pollIntervalEnv > 0 ? pollIntervalEnv : 2000;
 
+  // Виконуємо кроки послідовно і ловимо помилки у одному місці.
   try {
     // 1. Отримання ID файлу
     const fileId = await getFileId(openAiInstance, process.env.FILE_NAME);
@@ -54,6 +57,7 @@ async function main(openAiInstance) {
     console.log(`✔️ Id треду: ${chalk.grey.bold(threadId)}`);
 
     // Логіка надсилання повідомлень і отримування відповідей
+    // Цей цикл дозволяє задавати питання кілька разів, поки не досягнемо ліміту.
     while (runCount < maxRuns) {
       const message = await askUserMessage();
 
@@ -71,6 +75,7 @@ async function main(openAiInstance) {
       );
 
       // 7. Очікування відповіді
+      // Цей цикл чекає поки OpenAI закінчить обробку і поверне статус.
       while (true) {
         // перевіряємо статус запуску кожні 2 секунди
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
@@ -97,13 +102,16 @@ async function main(openAiInstance) {
  * @example "Які предмети у середу для групи ...?";
  * @returns {Promise<string>} The user message.
  */
+// Ця функція отримує текст від користувача або бере його з TEST_USER_MESSAGE.
 async function askUserMessage() {
   if (process.env.TEST_USER_MESSAGE) {
+    // У тестах беремо заготовлений текст і видаляємо його після використання.
     const message = process.env.TEST_USER_MESSAGE;
     delete process.env.TEST_USER_MESSAGE;
     return message;
   }
-  return new Promise((resolve, reject) => {
+  // Створюємо обіцянку, щоб дочекатися введення тексту з консолі.
+  return new Promise((resolve) => {
     process.stdout.write(
       chalk.green.bold("\n Введіть повідомлення для асистента: ")
     );

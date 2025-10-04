@@ -14,6 +14,7 @@ import { formatDate } from "./utils.js";
  * @returns {Promise<string>} The ID of the existing or newly created assistant.
  * @throws Will throw an error if the assistant creation or retrieval fails.
  */
+// Ця функція шукає асистента за ім'ям і створює нового, якщо нікого немає.
 export async function getAssistantId(openAiInstance, assistantName) {
   if (!assistantName) {
     throw new Error("❌ Не вказано ім'я ассистента (перевірте файл '.env').");
@@ -42,6 +43,7 @@ export async function getAssistantId(openAiInstance, assistantName) {
 
   // якщо знайдено більше одного асистента з ім'ям assistantName - вибрати асистента з  останньою датою
   if (targetAssistants.length > 1) {
+    // Сортуємо список, щоб взяти найсвіжішого асистента з правильними інструкціями.
     targetAssistants.sort(
       (a, b) => new Date(b.created_at) - new Date(a.created_at)
     );
@@ -76,6 +78,7 @@ export async function getAssistantId(openAiInstance, assistantName) {
   return targetAssistants[0].id;
 }
 
+// Ця функція прикріплює потрібне векторне сховище до асистента.
 export async function updateAssistantWithVectorStore(
   openAiInstance,
   assistantId,
@@ -104,6 +107,7 @@ export async function updateAssistantWithVectorStore(
  * @param {string} assistantName - The name of the assistant to create.
  * @returns {Promise<string>} The ID of the newly created assistant.
  */
+// Приватна функція створює нового асистента з інструкціями та налаштуваннями.
 async function _createNewAssistant(openAiInstance, assistantName) {
   try {
     const assistant = await openAiInstance.beta.assistants.create({
@@ -143,6 +147,7 @@ async function _createNewAssistant(openAiInstance, assistantName) {
  * @throws {Error} Throws an error if the file does not exist.
  * @returns {string} The content of the assistant instructions file.
  */
+// Читаємо файл з інструкціями, щоб асистент знав як відповідати.
 function _getAssistantInstructions() {
   const ASSISTANT_INSTRUCTIONS_FILE_NAME = "assistant_instructions.md";
 
@@ -165,6 +170,7 @@ function _getAssistantInstructions() {
   return assistantInstructions;
 }
 
+// Оновлюємо інструкції асистента, якщо текст у файлі змінився.
 async function _refreshAssistantInstructions(openAiInstance, assistant) {
   if (!assistant?.id) {
     return;
@@ -178,6 +184,7 @@ async function _refreshAssistantInstructions(openAiInstance, assistant) {
   }
 
   try {
+    // Надсилаємо в OpenAI новий текст, щоб асистент відповідав актуально.
     await openAiInstance.beta.assistants.update(assistant.id, {
       instructions: newInstructions,
     });

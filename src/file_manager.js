@@ -14,6 +14,7 @@ import { formatDate } from "./utils.js";
  * @returns {Promise<string>} The ID of the existing or newly created file.
  * @throws Will throw an error if the file upload or retrieval fails.
  */
+// Ця функція шукає файл на OpenAI і за потреби завантажує його.
 export async function getFileId(openAiInstance, fileName) {
   if (!fileName) {
     throw new Error("❌ Не вказано ім'я файлу.");
@@ -41,6 +42,7 @@ export async function getFileId(openAiInstance, fileName) {
 
   // якщо знайдено більше одного файлу з ім'ям fileName - вибрати файл з останньою датою
   if (targetFiles.length > 1) {
+    // Беремо найновіший файл, щоб не працювати зі старими версіями.
     targetFiles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     const latestFile = targetFiles[0];
     const formattedDate = formatDate(latestFile.created_at);
@@ -74,6 +76,7 @@ Id файлу: ${chalk.grey.bold(latestFile.id)}
  * @param {string} fileName - The name of the file to upload.
  * @returns {Promise<string>} The ID of the newly created file.
  */
+// Приватна функція читає файл з диска і відправляє його в OpenAI.
 async function _createNewFile(openAiInstance, fileName) {
   // Отримуємо повний шлях до файлу
   const filePath = path.resolve(`${process.env.FOLDER_NAME}/${fileName}`);
@@ -113,6 +116,7 @@ async function _createNewFile(openAiInstance, fileName) {
  * @returns {Promise<string>} The ID of the existing or newly created vector store.
  * @throws Will throw an error if the vector store creation or retrieval fails.
  */
+// Ця функція створює або знаходить векторне сховище для вибраних файлів.
 export async function getVectorStoreId(openAiInstance, fileIds) {
   try {
     if (!fileIds) {
@@ -167,6 +171,7 @@ export async function getVectorStoreId(openAiInstance, fileIds) {
  * @param {string} vectorStoreName - The name of the vector store to check and remove.
  * @throws Will throw an error if the operation fails.
  */
+// Приватна функція стирає старі сховища з таким самим ім'ям, щоб не плутатися.
 async function checkAndRemoveExistingVectorStore(
   openAiInstance,
   vectorStoreName
@@ -192,6 +197,7 @@ async function checkAndRemoveExistingVectorStore(
       );
 
       // Видаляємо всі існуючі векторні сховища
+      // Видаляємо всі збіги паралельно, щоб зекономити час.
       await Promise.all(
         targetVectorStores.map(async (vectorStore) => {
           try {
