@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { isThinkingModeEnabled } from "./utils.js";
 /**
  * Asynchronously retrieves the thread ID from OpenAI's thread list.
  * If no threads are found, it creates a new thread and returns its ID.
@@ -94,7 +95,31 @@ export async function getLastResponse(openAiInstance, threadId) {
     const messages = await _listThreadMessages(openAiInstance, threadId);
     const assistantResponse = messages.find((msg) => msg.role === "assistant");
 
-    return assistantResponse.content[0].text.value;
+    if (!assistantResponse) {
+      throw new Error("❌ У треді немає відповіді асистента.");
+    }
+
+    const thinkingPart = assistantResponse.content.find(
+      (part) => part.type === "thinking"
+    );
+
+    if (isThinkingModeEnabled() && thinkingPart?.thinking?.value) {
+      console.log(
+        chalk.cyan(
+          `🧠 Проміжні міркування:\n${thinkingPart.thinking.value.trim()}`
+        )
+      );
+    }
+
+    const textPart = assistantResponse.content.find((part) =>
+      ["output_text", "text"].includes(part.type)
+    );
+
+    if (textPart?.text?.value) {
+      return textPart.text.value;
+    }
+
+    throw new Error("❌ Не вдалося визначити текст відповіді асистента.");
   } catch (error) {
     throw new Error(
       chalk.red("❌ Не вдалося отримати відповідь асистента: ") + error.message
