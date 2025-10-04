@@ -12,6 +12,7 @@ export async function createOpenAIClient() {
     throw new Error("❌ Не вказано OPENAI_API_KEY у змінних середовища.");
   }
 
+  // Для коректного запуску через Codex Web потрібно налаштувати проксі.
   const proxyUrl = process.env.HTTPS_PROXY ?? process.env.HTTP_PROXY;
   // HttpsProxyAgent створює http.Agent з підтримкою HTTPS-проксі, щоб SDK одразу працював із системними налаштуваннями.
   // Якщо у мережі є проксі, налаштовуємо його, інакше працюємо напряму.
