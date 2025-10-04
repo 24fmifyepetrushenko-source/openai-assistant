@@ -11,3 +11,11 @@ export function formatDate(timeStampInSec) {
     month: "short",
   })} ${correctedDate.getFullYear()}, ${correctedDate.getHours()}:${correctedDate.getMinutes()}`;
 }
+
+/**
+ * Checks whether the thinking (reasoning) mode is enabled via environment variable.
+ * @returns {boolean} `true` when USE_THINKING_MODE is explicitly set to "true" (case-insensitive).
+ */
+export function isThinkingModeEnabled() {
+  return (process.env.USE_THINKING_MODE ?? "").toLowerCase() === "true";
+}

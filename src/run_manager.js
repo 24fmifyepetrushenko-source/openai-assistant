@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { isThinkingModeEnabled } from "./utils.js";
 
 /**
  * Runs the assistant on a specific thread.
@@ -26,9 +27,19 @@ export async function runAssistantOnThread(
     throw new Error("❌ Не вказано ID асистента.");
   }
 
-  const run = await openAiInstance.beta.threads.runs.create(threadId, {
-    assistant_id: assistantId,
-  });
+  const runPayload = { assistant_id: assistantId };
+
+  if (isThinkingModeEnabled()) {
+    runPayload.reasoning = { effort: "medium" };
+    runPayload.thinking = { enabled: true };
+    console.log(
+      chalk.gray(
+        "🧠 Thinking mode увімкнено (reasoning effort: medium, thinking output enabled)."
+      )
+    );
+  }
+
+  const run = await openAiInstance.beta.threads.runs.create(threadId, runPayload);
   console.log(chalk.green(`✔️ Асистент запущено: ${chalk.grey.bold(run.id)}`));
   return run;
 }

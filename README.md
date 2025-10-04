@@ -32,6 +32,7 @@ npm i
 2. Fill `assistant_instructions.md` file with instruction for the assistant.
 3. [Get the OpenAI API key.](https://platform.openai.com/docs/quickstart#create-and-export-an-api-key)
 4. Make a copy of file `.env.examle` rename it to `.env` and fill it with correct data (tokens, vector store name, file name ... etc.); File name should be WITH EXTENSION! (examp: `my_schedule.docx`).
+5. Optionally set `USE_THINKING_MODE=true` in `.env` to enable OpenAI reasoning (thinking) mode for supported models.
 
 # Usage
 
