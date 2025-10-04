@@ -10,6 +10,7 @@ import chalk from "chalk";
  * @returns {Promise<Object>} The run object.
  * @throws Will throw an error if running the assistant fails.
  */
+// Ця функція запускає асистента для конкретного треду з повідомленнями.
 export async function runAssistantOnThread(
   openAiInstance,
   threadId,
@@ -42,6 +43,7 @@ export async function runAssistantOnThread(
  * @returns {Promise<Object>} The run status object.
  * @throws Will throw an error if retrieving the run status fails.
  */
+// Ця функція перевіряє статус запуску, щоб знати коли є відповідь.
 export async function getRunStatus(openAiInstance, threadId, runId) {
   if (!openAiInstance) {
     throw new Error("❌ Не вказано екземпляр OpenAI.");
@@ -57,6 +59,7 @@ export async function getRunStatus(openAiInstance, threadId, runId) {
     threadId,
     runId
   );
+  // Обробляємо всі можливі статуси, щоб показати користувачу зрозумілі повідомлення.
   switch (runObject.status) {
     case "failed":
       throw new Error(

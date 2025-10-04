@@ -4,6 +4,7 @@
  * @returns {string} formatted date
  * @example formatDate(1739641153) // "31 Jan 2024, 15:30"
  * */
+// Ця функція перетворює час з секундів у красивий текст для логу.
 export function formatDate(timeStampInSec) {
   const correctedDate = new Date(timeStampInSec * 1000);
   return `${correctedDate.getDate()} ${correctedDate.toLocaleString("default", {

@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { config as dotEnvConfig } from "dotenv";
 
+// Отримуємо реальний шлях до файлу, щоб працювати з проєктом у тесті.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..");
@@ -13,14 +14,11 @@ const ANSI_REGEX = /\u001b\[[0-9;]*m/g;
 
 dotEnvConfig({ path: ".env" });
 
+// Цей тест запускає CLI проєкту та перевіряє, що відповідь приходить від справжнього OpenAI.
 test(
   "CLI запускається та повертає реальну відповідь від OpenAI",
   { timeout: 120_000 },
   async () => {
-
-      console.log('process.env', process.env);
-
-
     assert.ok(
       process.env.OPENAI_API_KEY,
       "Не знайдено OPENAI_API_KEY у змінних оточення"
@@ -41,6 +39,7 @@ test(
         process.env.VECTOR_STORE_NAME ?? "test-vector-store-real-api",
     };
 
+    // Запускаємо нашу CLI-програму як окремий процес.
     const child = spawn("node", ["src/index.js"], {
       cwd: projectRoot,
       env,
@@ -49,14 +48,17 @@ test(
 
     let output = "";
 
+    // Збираємо весь текст із stdout для майбутніх перевірок.
     child.stdout.on("data", (chunk) => {
       output += chunk.toString();
     });
 
+    // Так само додаємо все з stderr, щоб не втратити важливі повідомлення.
     child.stderr.on("data", (chunk) => {
       output += chunk.toString();
     });
 
+    // Чекаємо завершення процесу і зупиняємо тест, якщо стався збій.
     await new Promise((resolve, reject) => {
       child.on("error", reject);
       child.on("exit", (code) => {
@@ -70,11 +72,13 @@ test(
 
     const sanitizedOutput = output.replace(ANSI_REGEX, "");
 
+    // Перевіряємо, що файл обробляється (знайшли або створили).
     assert.match(
       sanitizedOutput,
       /✔️ Id файлу:|Файл "/,
       "Очікуємо, що файл буде знайдено або створено"
     );
+    // Переконуємося, що асистент реально відповів.
     assert.ok(
       sanitizedOutput.includes("💬 Відповідь асистента"),
       "Лог повинен містити блок із відповіддю"
@@ -89,6 +93,7 @@ test(
       .map((line) => line.trim())
       .find((line) => line.length > 0);
 
+    // Текст повинен бути непорожнім і не схожим на мок.
     assert.ok(
       assistantMessage && assistantMessage.length > 0,
       "Асистент має повернути текст відповіді"

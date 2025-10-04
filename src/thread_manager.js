@@ -9,6 +9,7 @@ import chalk from "chalk";
  * @returns {Promise<string>} The ID of the existing or newly created thread.
  * @throws Will throw an error if the thread creation or retrieval fails.
  */
+// Ця функція створює новий тред, щоб збирати всі повідомлення діалогу.
 export async function getThreadId(openAiInstance) {
   if (!openAiInstance) {
     throw new Error("❌ Не вказано екземпляр OpenAI.");
@@ -26,6 +27,7 @@ export async function getThreadId(openAiInstance) {
  * @param {OpenAI} openAiInstance - The OpenAI instance to use for thread operations.
  * @returns {Promise<string>} The ID of the newly created thread.
  */
+// Допоміжна функція створює тред і повертає його ID.
 async function _createNewThread(openAiInstance) {
   try {
     const thread = await openAiInstance.beta.threads.create();
@@ -47,6 +49,7 @@ async function _createNewThread(openAiInstance) {
  * @returns {Promise<void>}
  * @throws Will throw an error if adding the message fails.
  */
+// Ця функція додає повідомлення користувача до треду та файли, якщо треба.
 export async function addMessageToThread(
   openAiInstance,
   threadId,
@@ -69,6 +72,7 @@ export async function addMessageToThread(
   };
 
   if (fileId) {
+    // Якщо передали файл, додаємо його як вкладення до повідомлення.
     messageObject.attachments = [
       { tools: [{ type: "file_search" }], file_id: fileId },
     ];
@@ -84,6 +88,7 @@ export async function addMessageToThread(
   }
 }
 
+// Ця функція повертає останню відповідь асистента з треду.
 export async function getLastResponse(openAiInstance, threadId) {
   try {
     const messages = await _listThreadMessages(openAiInstance, threadId);
@@ -107,6 +112,7 @@ export async function getLastResponse(openAiInstance, threadId) {
  * @returns {Promise<Array>} The list of messages in the thread.
  * @throws Will throw an error if listing the messages fails.
  */
+// Допоміжна функція дістає список усіх повідомлень треду.
 async function _listThreadMessages(openAiInstance, threadId) {
   if (!openAiInstance) {
     throw new Error("❌ Не вказано екземпляр OpenAI.");
