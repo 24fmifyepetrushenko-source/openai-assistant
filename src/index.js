@@ -86,9 +86,6 @@ async function main(openAiInstance) {
         // 6. Додавання повідомлення в тред
         await addMessageToThread(openAiInstance, threadId, message);
 
-        //// Якщо ви хочете додати файл до повідомлення, використовуйте цей код
-        // await addMessageToThread(openai, threadId, message, fileId);
-
         // 7. Запуск асистента
         const runObject = await runAssistantOnThread(
           openAiInstance,

@@ -15,7 +15,6 @@ export function loadResponsesConfig() {
   }
 
   const temperatureEnv =
-    process.env.OPENAI_RESPONSES_TEMPERATURE ??
     process.env.OPENAI_TEMPERATURE ??
     "1";
 
