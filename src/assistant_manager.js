@@ -194,3 +194,8 @@ async function _refreshAssistantInstructions(openAiInstance, assistant) {
     );
   }
 }
+
+// Використовується Assistants API та Responses API: повертає текст інструкцій.
+export function getAssistantInstructionsText() {
+  return _getAssistantInstructions();
+}

@@ -31,6 +31,7 @@ export class MockOpenAI {
       assistants: [],
       threads: new Map(),
       runs: new Map(),
+      responses: new Map(),
       nextId: 0,
     };
 
@@ -192,6 +193,65 @@ export class MockOpenAI {
             };
           },
         },
+      },
+    };
+
+    // Responses API mock для тестів.
+    this.responses = {
+      create: async (payload) => {
+        const id = createId("resp", this.state);
+        const responseRecord = {
+          id,
+          status: "in_progress",
+          polls: 0,
+          input: payload.input,
+          usage: {
+            prompt_tokens: 12,
+            completion_tokens: 6,
+            total_tokens: 18,
+          },
+        };
+        this.state.responses.set(id, responseRecord);
+        return { ...responseRecord };
+      },
+      retrieve: async (responseId) => {
+        const stored = this.state.responses.get(responseId);
+        if (!stored) {
+          throw new Error(`Response ${responseId} not found`);
+        }
+
+        stored.polls += 1;
+
+        if (stored.polls >= 2) {
+          if (!stored.output) {
+            const messages = Array.isArray(stored.input)
+              ? stored.input
+              : [];
+            const lastUserMessage = [...messages]
+              .reverse()
+              .find((message) => message.role === "user");
+            const userText =
+              lastUserMessage?.content?.[0]?.text ??
+              lastUserMessage?.content?.[0]?.text?.value ??
+              "";
+
+            stored.output = [
+              {
+                type: "message",
+                role: "assistant",
+                content: [
+                  {
+                    type: "output_text",
+                    text: `Mocked Responses API reply to: ${userText}`,
+                  },
+                ],
+              },
+            ];
+          }
+          stored.status = "completed";
+        }
+
+        return { ...stored };
       },
     };
   }
