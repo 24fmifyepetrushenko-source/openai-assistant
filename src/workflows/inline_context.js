@@ -3,18 +3,17 @@ import fs from "fs/promises";
 import path from "path";
 import { recordSystemMessage } from "../reasoning_api/conversation.js";
 
-// Читає файли та додає їх вміст як системні повідомлення.
-export async function enrichConversationWithFiles(conversationHistory) {
-  const fileNames = (process.env.FILE_NAME ?? "")
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
-
+// Додає текстовий вміст файлів як системний промпт для Responses API.
+export async function enrichConversationWithFiles(
+  conversationHistory,
+  { fileNames = [] }
+) {
   if (!fileNames.length) {
     return;
   }
 
   const folderName = process.env.FOLDER_NAME;
+
   try {
     for (const fileName of fileNames) {
       const filePath = path.resolve(`${folderName}/${fileName}`);

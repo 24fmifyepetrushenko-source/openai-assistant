@@ -23,11 +23,25 @@ export async function runResponsesFlow(openAiInstance, options) {
   const { maxRuns, pollInterval } = options;
   let runCount = 0;
 
-  // 1. Завантажуємо файл і отримуємо його ID.
-  const fileId = await getFileId(openAiInstance, process.env.FILE_NAME);
-  const fileIds = [fileId];
+  // Знаходимо всі імена файлів, розділені комами (у значенны зміної середовища "FILE_NAME")
+  const fileNames = (process.env.FILE_NAME ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
 
-  console.log(`✔️ Id файлу: ${chalk.grey.bold(fileId)}`);
+  if (!fileNames.length) {
+    throw new Error(
+      chalk.red("❌ Не вказано FILE_NAME для Responses API.")
+    );
+  }
+
+  // 1. Завантажуємо файли і зберігаємо їхні ID.
+  const fileIds = [];
+  for (const fileName of fileNames) {
+    const fileId = await getFileId(openAiInstance, fileName);
+    console.log(`✔️ Id файлу ${fileName}: ${chalk.grey.bold(fileId)}`);
+    fileIds.push(fileId);
+  }
 
   // 2. Створюємо векторне сховище для цього файлу.
   const vectorStoreId = await getVectorStoreId(openAiInstance, fileIds);
@@ -41,7 +55,9 @@ export async function runResponsesFlow(openAiInstance, options) {
   const attachments = buildFileSearchAttachments(fileIds);
 
   // 4. Додаємо вміст файлів як системний контекст.
-  await enrichConversationWithFiles(conversationHistory);
+  await enrichConversationWithFiles(conversationHistory, {
+    fileNames,
+  });
 
   while (runCount < maxRuns) {
     // 5. Зчитуємо повідомлення користувача.

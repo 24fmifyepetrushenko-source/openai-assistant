@@ -9,14 +9,13 @@ export function initConversation() {
 }
 
 // Responses API helper: додає повідомлення користувача до історії.
-export function recordUserMessage(history, message, attachments = []) {
+export function recordUserMessage(history, message) {
   if (!Array.isArray(history)) {
     throw new Error("❌ Історія розмови має бути масивом.");
   }
   history.push({
     role: "user",
     content: message,
-    attachments,
   });
   console.log(
     chalk.green("✔️ Повідомлення користувача додано до локальної історії (Response API)")
