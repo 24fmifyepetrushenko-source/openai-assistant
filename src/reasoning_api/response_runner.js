@@ -1,6 +1,18 @@
 import chalk from "chalk";
 
 function getResponsesClient(openAiInstance) {
+  /**
+   * Повертає клієнт Responses API.
+   *
+   * Спочатку шукаємо готовий модуль `responses` у SDK. Якщо його немає
+   * (старі версії пакета), будуємо обгортку поверх `openAiInstance.request`,
+   * щоб напряму викликати `/responses` і `/responses/{id}`.
+   *
+   * @param {import("openai").OpenAI} openAiInstance - Ініціалізований OpenAI клієнт.
+   * @returns {{create: Function, retrieve: Function}} об'єкт із методами для створення
+   *          та отримання відповіді Responses API.
+   * @throws {Error} Якщо клієнт не підтримує Responses API.
+   */
   const directClient =
     openAiInstance?.responses ??
     openAiInstance?.beta?.responses ??
@@ -57,15 +69,19 @@ export async function createResponse(
   };
 
   if (attachments?.length) {
-    payload.attachments = attachments;
+    console.log(
+      chalk.yellow(
+        "⚠️ Вкладення Responses API наразі пропускаються; очікуємо офіційну підтримку (Response API)"
+      )
+    );
   }
 
   if (options?.vectorStoreId) {
-    payload.tool_resources = {
-      file_search: {
-        vector_store_ids: [options.vectorStoreId],
-      },
-    };
+    console.log(
+      chalk.yellow(
+        "⚠️ Responses API не приймає tool_resources; запит виконується без прямого доступу до векторного сховища (Response API)"
+      )
+    );
   }
 
   const responsesClient = getResponsesClient(openAiInstance);

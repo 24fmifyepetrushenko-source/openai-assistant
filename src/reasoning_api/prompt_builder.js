@@ -9,7 +9,7 @@ export function buildResponsesPrompt(history, instructions) {
       role: "system",
       content: [
         {
-          type: "text",
+          type: "input_text",
           text: instructions,
         },
       ],
@@ -21,11 +21,14 @@ export function buildResponsesPrompt(history, instructions) {
       continue;
     }
 
+    const isAssistant = message.role === "assistant";
+    const contentType = isAssistant ? "output_text" : "input_text";
+
     input.push({
       role: message.role,
       content: [
         {
-          type: "text",
+          type: contentType,
           text: message.content,
         },
       ],

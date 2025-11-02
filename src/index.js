@@ -176,6 +176,12 @@ async function main(openAiInstance) {
  * @returns {Promise<string>} The user message.
  */
 async function askUserMessage() {
+  // if (process.env.TEST_USER_MESSAGE) {
+  //   const message = process.env.TEST_USER_MESSAGE;
+  //   delete process.env.TEST_USER_MESSAGE;
+  //   return message;
+  // }
+
   // Створюємо Promise, щоб дочекатися введення тексту з консолі.
   return new Promise((resolve) => {
     process.stdout.write(

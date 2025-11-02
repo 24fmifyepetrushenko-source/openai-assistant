@@ -14,7 +14,7 @@
   "dependencies": {
     "chalk": "5.4.1",
     "https-proxy-agent": "^7.0.6",
-    "openai": "^4.82.0"
+    "openai": "^4.104.0"
   },
   "devDependencies": {
     "dotenv": "^16.4.7"
