@@ -31,7 +31,12 @@ import { logUsageFromResponse } from "./reasoning_api/usage_logger.js";
 dotEnvConfig({ path: ".env" });
 const openai = await createOpenAIClient();
 
-// Ця головна функція запускає всі кроки: шукає файли, асистента і веде діалог.
+/**
+ * Ця головна функція, яка запускає всі кроки: шукає файли, асистента і веде діалог.
+ * З цієї функції починається робота програми. Це відправна точка програми.
+ * @param {*} openAiInstance 
+ * @returns 
+ */
 async function main(openAiInstance) {
   // Готуємо службові змінні для контролю кількості запусків і затримки.
   let runStatus;
@@ -166,18 +171,12 @@ async function main(openAiInstance) {
 }
 
 /**
+ * Функція отримує текст від користувача.
  * @example "Які предмети у середу для групи ...?";
  * @returns {Promise<string>} The user message.
  */
-// Ця функція отримує текст від користувача або бере його з TEST_USER_MESSAGE.
 async function askUserMessage() {
-  if (process.env.TEST_USER_MESSAGE) {
-    // У тестах беремо заготовлений текст і видаляємо його після використання.
-    const message = process.env.TEST_USER_MESSAGE;
-    delete process.env.TEST_USER_MESSAGE;
-    return message;
-  }
-  // Створюємо обіцянку, щоб дочекатися введення тексту з консолі.
+  // Створюємо Promise, щоб дочекатися введення тексту з консолі.
   return new Promise((resolve) => {
     process.stdout.write(
       chalk.green.bold("\n Введіть повідомлення для асистента: ")
