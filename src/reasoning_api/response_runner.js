@@ -68,6 +68,7 @@ export async function createResponse(
     temperature: options.temperature,
   };
 
+  // TODO: Відправляти attachments, коли Responses API отримає офіційну підтримку file search.
   if (attachments?.length) {
     console.log(
       chalk.yellow(
@@ -76,6 +77,7 @@ export async function createResponse(
     );
   }
 
+  // TODO: Передавати tool_resources, коли Responses API навчиться приймати vector stores.
   if (options?.vectorStoreId) {
     console.log(
       chalk.yellow(

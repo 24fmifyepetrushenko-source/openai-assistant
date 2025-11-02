@@ -37,3 +37,17 @@ export function recordAssistantMessage(history, message) {
   );
 }
 
+// Responses API helper: додає системне повідомлення до історії (для контексту).
+export function recordSystemMessage(history, message) {
+  if (!Array.isArray(history)) {
+    throw new Error("❌ Історія розмови має бути масивом.");
+  }
+  history.push({
+    role: "system",
+    content: message,
+  });
+  console.log(
+    chalk.green("✔️ Системний контекст додано до локальної історії (Response API)")
+  );
+}
+

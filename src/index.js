@@ -18,6 +18,7 @@ import {
   initConversation,
   recordUserMessage,
   recordAssistantMessage,
+  recordSystemMessage,
 } from "./reasoning_api/conversation.js";
 import { buildResponsesPrompt } from "./reasoning_api/prompt_builder.js";
 import { buildFileSearchAttachments } from "./reasoning_api/attachments.js";
@@ -27,6 +28,7 @@ import {
   extractAssistantReply,
 } from "./reasoning_api/response_runner.js";
 import { logUsageFromResponse } from "./reasoning_api/usage_logger.js";
+import { loadInlineAttachmentContext } from "./reasoning_api/inline_context.js";
 
 dotEnvConfig({ path: ".env" });
 const openai = await createOpenAIClient();
@@ -126,6 +128,32 @@ async function main(openAiInstance) {
       const instructions = getAssistantInstructionsText();
       const conversationHistory = initConversation();
       const attachments = buildFileSearchAttachments(fileIds);
+      const fileNamesForInline = (process.env.FILE_NAME ?? "")
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean);
+      if (fileNamesForInline.length) {
+        try {
+          const inlineContexts = await loadInlineAttachmentContext(
+            process.env.FOLDER_NAME,
+            fileNamesForInline
+          );
+          inlineContexts.forEach(({ fileName, content }) => {
+            recordSystemMessage(
+              conversationHistory,
+              `Вміст файлу ${fileName}:\n${content}`
+            );
+          });
+        } catch (error) {
+          console.error(
+            chalk.red(
+              "❌ Не вдалося завантажити файли для інлайнового контексту: "
+            ),
+            error
+          );
+          throw error;
+        }
+      }
 
       while (runCount < maxRuns) {
         const message = await askUserMessage();
