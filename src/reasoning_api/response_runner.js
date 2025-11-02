@@ -62,11 +62,30 @@ export async function createResponse(
     throw new Error("❌ Не вказано модель для Responses API.");
   }
 
+  const {
+    model,
+    temperature,
+    reasoning,
+    maxOutputTokens,
+    vectorStoreId,
+  } = options;
+
   const payload = {
-    model: options.model,
+    model,
     input,
-    temperature: options.temperature,
   };
+
+  if (temperature !== undefined) {
+    payload.temperature = temperature;
+  }
+
+  if (reasoning) {
+    payload.reasoning = reasoning;
+  }
+
+  if (maxOutputTokens) {
+    payload.max_output_tokens = maxOutputTokens;
+  }
 
   // TODO: Відправляти attachments, коли Responses API отримає офіційну підтримку file search.
   if (attachments?.length) {
@@ -78,7 +97,7 @@ export async function createResponse(
   }
 
   // TODO: Передавати tool_resources, коли Responses API навчиться приймати vector stores.
-  if (options?.vectorStoreId) {
+  if (vectorStoreId) {
     console.log(
       chalk.yellow(
         "⚠️ Responses API не приймає tool_resources; запит виконується без прямого доступу до векторного сховища (Response API)"

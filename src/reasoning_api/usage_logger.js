@@ -70,15 +70,32 @@ export function logUsageFromResponse(response) {
     sumTokenDetails(usage.completion_tokens_details) ??
     0;
 
-  const totalTokens =
-    pickUsageValue(usage, ["total_tokens"]) ?? inputTokens + outputTokens;
+  const rawReasoningTokens =
+    pickUsageValue(usage, ["reasoning_tokens"]) ??
+    sumTokenDetails(usage.reasoning_tokens_details);
 
-  console.log(
-    chalk.grey(
-      `${chalk.bold.underline("Використано токенів:")}
-Вхідних (input): ${chalk.bold(inputTokens)}
-Вихідних (output): ${chalk.bold(outputTokens)}
-Всього: ${chalk.bold(totalTokens)} (Response API)`
-    )
-  );
+  const hasReasoningTokens =
+    rawReasoningTokens !== undefined && Number.isFinite(rawReasoningTokens);
+
+  const reasoningTokens = hasReasoningTokens ? rawReasoningTokens : 0;
+
+  const totalTokens =
+    pickUsageValue(usage, ["total_tokens"]) ??
+    inputTokens +
+      outputTokens +
+      (hasReasoningTokens ? reasoningTokens : 0);
+
+  const lines = [
+    chalk.bold.underline("Використано токенів:"),
+    `Вхідних (input): ${chalk.bold(inputTokens)}`,
+    `Вихідних (output): ${chalk.bold(outputTokens)}`,
+  ];
+
+  if (hasReasoningTokens) {
+    lines.push(`Reasoning: ${chalk.bold(reasoningTokens)}`);
+  }
+
+  lines.push(`Всього: ${chalk.bold(totalTokens)} (Response API)`);
+
+  console.log(chalk.grey(lines.join("\n")));
 }

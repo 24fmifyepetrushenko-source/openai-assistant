@@ -71,6 +71,8 @@ export async function runResponsesFlow(openAiInstance, options) {
     const response = await createResponse(openAiInstance, input, attachments, {
       model: responsesConfig.model,
       temperature: responsesConfig.temperature,
+      reasoning: responsesConfig.reasoning,
+      maxOutputTokens: responsesConfig.maxOutputTokens,
       vectorStoreId,
     });
 
