@@ -23,7 +23,8 @@ export async function getAssistantId(openAiInstance, assistantName) {
     throw new Error("❌ Не вказано екземпляр OpenAI.");
   }
 
-  const assistants = await openAiInstance.beta.assistants.list();
+  const assistantsClient = resolveAssistantsClient(openAiInstance);
+  const assistants = await assistantsClient.list();
 
   const targetAssistants =
     assistants?.data?.filter((assistant) => assistant.name === assistantName) ||
@@ -94,7 +95,8 @@ export async function updateAssistantWithVectorStore(
     throw new Error("❌ Не вказано ID векторного сховища.");
   }
 
-  await openAiInstance.beta.assistants.update(assistantId, {
+  const assistantsClient = resolveAssistantsClient(openAiInstance);
+  await assistantsClient.update(assistantId, {
     tool_resources: { file_search: { vector_store_ids: [vectorStoreId] } },
   });
 }
@@ -110,7 +112,8 @@ export async function updateAssistantWithVectorStore(
 // Приватна функція створює нового асистента з інструкціями та налаштуваннями.
 async function _createNewAssistant(openAiInstance, assistantName) {
   try {
-    const assistant = await openAiInstance.beta.assistants.create({
+    const assistantsClient = resolveAssistantsClient(openAiInstance);
+    const assistant = await assistantsClient.create({
       name: assistantName,
       instructions: _getAssistantInstructions(),
       model: process.env.OPENAI_MODEL,
@@ -185,7 +188,8 @@ async function _refreshAssistantInstructions(openAiInstance, assistant) {
 
   try {
     // Надсилаємо в OpenAI новий текст, щоб асистент відповідав актуально.
-    await openAiInstance.beta.assistants.update(assistant.id, {
+    const assistantsClient = resolveAssistantsClient(openAiInstance);
+    await assistantsClient.update(assistant.id, {
       instructions: newInstructions,
     });
   } catch (error) {
@@ -198,4 +202,19 @@ async function _refreshAssistantInstructions(openAiInstance, assistant) {
 // Використовується Assistants API та Responses API: повертає текст інструкцій.
 export function getAssistantInstructionsText() {
   return _getAssistantInstructions();
+}
+
+function resolveAssistantsClient(openAiInstance) {
+  const assistantsClient =
+    openAiInstance?.assistants ?? openAiInstance?.beta?.assistants ?? null;
+
+  if (!assistantsClient) {
+    throw new Error(
+      chalk.red(
+        "❌ API для асистентів недоступний у поточному SDK. Оновіть пакет 'openai' або перевірте конфігурацію клієнта."
+      )
+    );
+  }
+
+  return assistantsClient;
 }

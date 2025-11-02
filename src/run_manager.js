@@ -26,7 +26,8 @@ export async function runAssistantOnThread(
     throw new Error("❌ Не вказано ID асистента.");
   }
 
-  const run = await openAiInstance.beta.threads.runs.create(threadId, {
+  const threadsClient = resolveThreadsClient(openAiInstance);
+  const run = await threadsClient.runs.create(threadId, {
     assistant_id: assistantId,
   });
   console.log(chalk.green(`✔️ Асистент запущено: ${chalk.grey.bold(run.id)}`));
@@ -55,10 +56,8 @@ export async function getRunStatus(openAiInstance, threadId, runId) {
     throw new Error("❌ Не вказано ID запуску.");
   }
 
-  const runObject = await openAiInstance.beta.threads.runs.retrieve(
-    threadId,
-    runId
-  );
+  const threadsClient = resolveThreadsClient(openAiInstance);
+  const runObject = await threadsClient.runs.retrieve(threadId, runId);
   // Обробляємо всі можливі статуси, щоб показати користувачу зрозумілі повідомлення.
   switch (runObject.status) {
     case "failed":
@@ -84,4 +83,19 @@ export async function getRunStatus(openAiInstance, threadId, runId) {
       console.log("Статус:", runObject.status);
   }
   return runObject;
+}
+
+function resolveThreadsClient(openAiInstance) {
+  const threadsClient =
+    openAiInstance?.threads ?? openAiInstance?.beta?.threads ?? null;
+
+  if (!threadsClient) {
+    throw new Error(
+      chalk.red(
+        "❌ API для запуску асистентів недоступний у поточному SDK. Оновіть пакет 'openai' або перевірте конфігурацію клієнта."
+      )
+    );
+  }
+
+  return threadsClient;
 }

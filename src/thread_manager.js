@@ -30,7 +30,8 @@ export async function getThreadId(openAiInstance) {
 // Допоміжна функція створює тред і повертає його ID.
 async function _createNewThread(openAiInstance) {
   try {
-    const thread = await openAiInstance.beta.threads.create();
+    const threadsClient = resolveThreadsClient(openAiInstance);
+    const thread = await threadsClient.create();
     console.log(chalk.green(`✔️ Тред створений.`));
     return thread.id;
   } catch (error) {
@@ -79,7 +80,8 @@ export async function addMessageToThread(
   }
 
   try {
-    await openAiInstance.beta.threads.messages.create(threadId, messageObject);
+    const threadsClient = resolveThreadsClient(openAiInstance);
+    await threadsClient.messages.create(threadId, messageObject);
     console.log(chalk.green("✔️ Повідомлення додано в тред"));
   } catch (error) {
     throw new Error(
@@ -121,7 +123,23 @@ async function _listThreadMessages(openAiInstance, threadId) {
     throw new Error("❌ Не вказано ID треду.");
   }
 
-  const messages = await openAiInstance.beta.threads.messages.list(threadId);
+  const threadsClient = resolveThreadsClient(openAiInstance);
+  const messages = await threadsClient.messages.list(threadId);
   console.log(chalk.green("✔️ Повідомлення треду отримано"));
   return messages.data;
+}
+
+function resolveThreadsClient(openAiInstance) {
+  const threadsClient =
+    openAiInstance?.threads ?? openAiInstance?.beta?.threads ?? null;
+
+  if (!threadsClient) {
+    throw new Error(
+      chalk.red(
+        "❌ API для тредів недоступний у поточному SDK. Оновіть пакет 'openai' або перевірте конфігурацію клієнта."
+      )
+    );
+  }
+
+  return threadsClient;
 }

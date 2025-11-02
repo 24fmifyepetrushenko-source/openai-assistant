@@ -126,16 +126,20 @@ export async function getVectorStoreId(openAiInstance, fileIds) {
       throw new Error(chalk.red("❌ Не вказано екземпляр OpenAI."));
     }
 
+    const vectorStoresClient = resolveVectorStoresClient(openAiInstance);
     const vectorStoreName =
       process.env.VECTOR_STORE_NAME ||
       `vector-store_${new Date().getDate()}_${
         new Date().getMonth() + 1
       }_${new Date().getFullYear()}`;
 
-    await checkAndRemoveExistingVectorStore(openAiInstance, vectorStoreName);
+    await checkAndRemoveExistingVectorStore(
+      vectorStoresClient,
+      vectorStoreName
+    );
 
     // Створюємо векторне сховище, яке буде містити вектори з наших файлів
-    let vectorStore = await openAiInstance.beta.vectorStores.create({
+    let vectorStore = await vectorStoresClient.create({
       name: vectorStoreName,
       file_ids: fileIds,
       expires_after: {
@@ -173,11 +177,11 @@ export async function getVectorStoreId(openAiInstance, fileIds) {
  */
 // Приватна функція стирає старі сховища з таким самим ім'ям, щоб не плутатися.
 async function checkAndRemoveExistingVectorStore(
-  openAiInstance,
+  vectorStoresClient,
   vectorStoreName
 ) {
   try {
-    const vectorStores = await openAiInstance.beta.vectorStores.list({
+    const vectorStores = await vectorStoresClient.list({
       limit: 100,
     });
     const targetVectorStores =
@@ -201,7 +205,7 @@ async function checkAndRemoveExistingVectorStore(
       await Promise.all(
         targetVectorStores.map(async (vectorStore) => {
           try {
-            await openAiInstance.beta.vectorStores.del(vectorStore.id);
+            await vectorStoresClient.del(vectorStore.id);
             console.log(
               chalk.green(
                 `✔️ Векторне сховище ${chalk.green.bold(
@@ -223,4 +227,19 @@ async function checkAndRemoveExistingVectorStore(
   } catch (error) {
     throw new Error(chalk.red("❌ Помилка: ") + error.message);
   }
+}
+
+function resolveVectorStoresClient(openAiInstance) {
+  const vectorStoresClient =
+    openAiInstance?.vectorStores ?? openAiInstance?.beta?.vectorStores ?? null;
+
+  if (!vectorStoresClient) {
+    throw new Error(
+      chalk.red(
+        "❌ Векторні сховища недоступні у поточному SDK. Оновіть пакет 'openai' або перевірте конфігурацію клієнта."
+      )
+    );
+  }
+
+  return vectorStoresClient;
 }

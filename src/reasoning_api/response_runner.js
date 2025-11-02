@@ -1,5 +1,38 @@
 import chalk from "chalk";
 
+function getResponsesClient(openAiInstance) {
+  const directClient =
+    openAiInstance?.responses ??
+    openAiInstance?.beta?.responses ??
+    null;
+
+  if (directClient?.create && directClient?.retrieve) {
+    return directClient;
+  }
+
+  if (typeof openAiInstance?.request === "function") {
+    return {
+      create: (payload) =>
+        openAiInstance.request({
+          method: "POST",
+          path: "/responses",
+          body: payload,
+        }),
+      retrieve: (responseId) =>
+        openAiInstance.request({
+          method: "GET",
+          path: `/responses/${responseId}`,
+        }),
+    };
+  }
+
+  throw new Error(
+    chalk.red(
+      "❌ Responses API недоступний у поточному SDK. Оновіть пакет 'openai' або перевірте конфігурацію клієнта."
+    )
+  );
+}
+
 // Responses API helper: викликає Responses API та повертає первинний об'єкт відповіді.
 export async function createResponse(
   openAiInstance,
@@ -35,7 +68,8 @@ export async function createResponse(
     };
   }
 
-  const response = await openAiInstance.responses.create(payload);
+  const responsesClient = getResponsesClient(openAiInstance);
+  const response = await responsesClient.create(payload);
 
   console.log(
     chalk.green(
@@ -62,6 +96,7 @@ export async function awaitResponseCompletion(
     throw new Error("❌ Відповідь Responses API не містить ID.");
   }
 
+  const responsesClient = getResponsesClient(openAiInstance);
   let current = response;
 
   console.log(chalk.gray("⌛ Очікуємо завершення Responses API (Response API)"));
@@ -70,7 +105,7 @@ export async function awaitResponseCompletion(
     ["in_progress", "queued", "generating"].includes(current.status ?? "")
   ) {
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-    current = await openAiInstance.responses.retrieve(current.id);
+    current = await responsesClient.retrieve(current.id);
   }
 
   if (current.status === "failed") {

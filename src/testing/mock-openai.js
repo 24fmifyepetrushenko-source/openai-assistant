@@ -51,30 +51,32 @@ export class MockOpenAI {
       },
     };
 
+    const vectorStoresApi = {
+      list: async () => ({ data: [...this.state.vectorStores] }),
+      create: async ({ name, file_ids, expires_after }) => {
+        const id = createId("vs", this.state);
+        const vectorStore = {
+          id,
+          name,
+          file_ids,
+          created_at: Math.floor(Date.now() / 1000),
+          expires_after,
+        };
+        this.state.vectorStores.push(vectorStore);
+        return vectorStore;
+      },
+      del: async (vectorStoreId) => {
+        this.state.vectorStores = this.state.vectorStores.filter(
+          (vectorStore) => vectorStore.id !== vectorStoreId
+        );
+      },
+    };
+
+    this.vectorStores = vectorStoresApi;
+
     // Блок beta містить підмножини API як у справжньому SDK.
     this.beta = {
-      vectorStores: {
-        // Повертаємо список штучних векторних сховищ.
-        list: async () => ({ data: [...this.state.vectorStores] }),
-        // Створюємо нове сховище та зберігаємо його в стані.
-        create: async ({ name, file_ids, expires_after }) => {
-          const id = createId("vs", this.state);
-          const vectorStore = {
-            id,
-            name,
-            file_ids,
-            created_at: Math.floor(Date.now() / 1000),
-            expires_after,
-          };
-          this.state.vectorStores.push(vectorStore);
-          return vectorStore;
-        },
-        del: async (vectorStoreId) => {
-          this.state.vectorStores = this.state.vectorStores.filter(
-            (vectorStore) => vectorStore.id !== vectorStoreId
-          );
-        },
-      },
+      vectorStores: vectorStoresApi,
       assistants: {
         // Повертаємо список створених тестових асистентів.
         list: async () => ({ data: [...this.state.assistants] }),

@@ -37,7 +37,3 @@ export function recordAssistantMessage(history, message) {
   );
 }
 
-// Responses API helper: повертає незмінну копію історії.
-export function getConversationHistory(history) {
-  return [...history];
-}
