@@ -1,15 +1,28 @@
 import chalk from "chalk";
 
-// Складаємо списки дозволених значень, щоб потім легко перевіряти варіанти з env.
 const REASONING_EFFORT_VALUES = new Set(["low", "medium", "high"]);
 const REASONING_SUMMARY_VALUES = new Set(["auto", "concise", "detailed"]);
 
-// Перевіряємо, чи назва моделі схожа на reasoning-модель (для них діють інші правила).
 function isReasoningModel(model) {
   return typeof model === "string" && model.trim().toLowerCase().startsWith("o");
 }
 
-// Читаємо рівень зусиль reasoning (effort) з env та перевіряємо, що він дозволений.
+function parseIsReasoningFlag() {
+  const raw = process.env.IS_REASONING?.trim().toLowerCase();
+  if (!raw) return undefined;
+
+  if (["true", "1", "yes", "on"].includes(raw)) return true;
+  if (["false", "0", "no", "off"].includes(raw)) return false;
+
+  console.log(
+    chalk.yellow(
+      `Unknown IS_REASONING value "${raw}". Falling back to automatic behavior (Response API)`
+    )
+  );
+
+  return undefined;
+}
+
 function parseReasoningEffort() {
   const effort = process.env.OPENAI_REASONING_EFFORT?.trim().toLowerCase();
 
@@ -20,7 +33,7 @@ function parseReasoningEffort() {
   if (!REASONING_EFFORT_VALUES.has(effort)) {
     console.log(
       chalk.yellow(
-        `⚠️ Непідтримуване значення OPENAI_REASONING_EFFORT=${effort}. Використовується налаштування за замовчуванням (Response API)`
+        `Unknown OPENAI_REASONING_EFFORT=${effort}. Skipping reasoning effort (Response API)`
       )
     );
     return undefined;
@@ -29,7 +42,6 @@ function parseReasoningEffort() {
   return effort;
 }
 
-// Читаємо бажану довжину резюме reasoning-відповіді та перевіряємо її.
 function parseReasoningSummary() {
   const summary = process.env.OPENAI_REASONING_SUMMARY?.trim().toLowerCase();
 
@@ -40,7 +52,7 @@ function parseReasoningSummary() {
   if (!REASONING_SUMMARY_VALUES.has(summary)) {
     console.log(
       chalk.yellow(
-        `⚠️ Непідтримуване значення OPENAI_REASONING_SUMMARY=${summary}. Використовується налаштування за замовчуванням (Response API)`
+        `Unknown OPENAI_REASONING_SUMMARY=${summary}. Skipping reasoning summary (Response API)`
       )
     );
     return undefined;
@@ -49,7 +61,6 @@ function parseReasoningSummary() {
   return summary;
 }
 
-// Зчитуємо ліміт токенів для відповіді й переконуємося, що це додатнє число.
 function parseMaxOutputTokens() {
   const rawValue = process.env.OPENAI_MAX_OUTPUT_TOKENS?.trim();
   if (!rawValue) {
@@ -60,7 +71,7 @@ function parseMaxOutputTokens() {
   if (!Number.isFinite(value) || value <= 0) {
     console.log(
       chalk.yellow(
-        `⚠️ OPENAI_MAX_OUTPUT_TOKENS повинно бути додатнім числом. Значення "${rawValue}" проігноровано (Response API)`
+        `OPENAI_MAX_OUTPUT_TOKENS must be a positive integer. Received "${rawValue}" (Response API)`
       )
     );
     return undefined;
@@ -69,22 +80,19 @@ function parseMaxOutputTokens() {
   return value;
 }
 
-// Головна функція: збирає всі параметри моделі з env і повертає готову конфігурацію.
 export function loadResponsesConfig() {
   const model =
     process.env.OPENAI_RESPONSES_MODEL?.trim() ||
     process.env.OPENAI_MODEL?.trim();
 
-  // Без назви моделі працювати неможливо, тому одразу зупиняємо програму.
   if (!model) {
     throw new Error(
       chalk.red(
-        "❌ Не вказано модель для Responses API. Додайте OPENAI_RESPONSES_MODEL або OPENAI_MODEL."
+        "No model configured for Responses API. Set OPENAI_RESPONSES_MODEL or OPENAI_MODEL."
       )
     );
   }
 
-  // Дістаємо температуру з env (або беремо 1 за замовчуванням) і перевіряємо межі.
   const rawTemperatureEnv = process.env.OPENAI_TEMPERATURE;
   const temperatureEnv = rawTemperatureEnv ?? "1";
 
@@ -96,11 +104,21 @@ export function loadResponsesConfig() {
 
   const nonReasoningTemperature = isValidTemperature ? parsedTemperature : 1;
 
-  // Тут збираємо додаткові опції для reasoning-моделей.
+  const reasoningOverride = parseIsReasoningFlag();
+  const supportsReasoning = isReasoningModel(model);
+
+  // override=true => force on (if supported), override=false => allow auto, undefined => auto
+  const reasoningEnabled =
+    (reasoningOverride === true && supportsReasoning) ||
+    (reasoningOverride !== true &&
+      reasoningOverride !== false &&
+      supportsReasoning) ||
+    (reasoningOverride === false && supportsReasoning);
+
   const reasoningOptions = {};
   let reasoningSummary;
 
-  if (isReasoningModel(model)) {
+  if (reasoningEnabled) {
     const effort = parseReasoningEffort();
     reasoningSummary = parseReasoningSummary();
 
@@ -116,14 +134,13 @@ export function loadResponsesConfig() {
 
   const hasReasoningOptions = Object.keys(reasoningOptions).length > 0;
 
-  // Температуру можна задавати лише для звичайних моделей, тому обробляємо обидва сценарії.
   let temperature;
-  if (isReasoningModel(model)) {
+  if (reasoningEnabled) {
     temperature = undefined;
     if (rawTemperatureEnv !== undefined) {
       console.log(
         chalk.yellow(
-          "⚠️ Параметр OPENAI_TEMPERATURE проігноровано: reasoning моделі не підтримують температуру (Response API)"
+          "OPENAI_TEMPERATURE is ignored for reasoning models (Response API)"
         )
       );
     }
@@ -131,29 +148,25 @@ export function loadResponsesConfig() {
     temperature = nonReasoningTemperature;
   }
 
-  // Складаємо об'єкт з усіма налаштуваннями, які будемо використовувати далі.
   const result = {
     model,
     temperature,
     reasoning: hasReasoningOptions ? reasoningOptions : undefined,
-    isReasoningModel: isReasoningModel(model),
+    isReasoningModel: supportsReasoning,
+    reasoningEnabled,
     maxOutputTokens,
   };
 
-  // Готуємо текстове пояснення, щоб користувач бачив, що саме підвантажено.
-  const configDetails = [
-    `модель ${chalk.grey.bold(result.model)}`,
-  ];
+  const configDetails = [`model ${chalk.grey.bold(result.model)}`];
 
   if (result.temperature !== undefined) {
-    configDetails.push(`температура ${chalk.grey.bold(result.temperature)}`);
+    configDetails.push(`temperature ${chalk.grey.bold(result.temperature)}`);
   } else if (result.isReasoningModel) {
-    configDetails.push("температура недоступна для reasoning моделей");
+    configDetails.push("temperature omitted (reasoning model)");
   }
 
-  if (result.isReasoningModel) {
-    configDetails.push("reasoning model");
-
+  if (result.reasoningEnabled) {
+    configDetails.push("reasoning enabled");
     if (reasoningOptions.effort) {
       configDetails.push(
         `reasoning effort ${chalk.grey.bold(reasoningOptions.effort)}`
@@ -173,12 +186,9 @@ export function loadResponsesConfig() {
     );
   }
 
-  // Виводимо коротке зведення, щоб було зрозуміло, з якими параметрами піде запит.
   console.log(
     chalk.green(
-      `✔️ Response API конфігурацію завантажено: ${configDetails.join(
-        ", "
-      )} (Response API)`
+      `Responses API configuration: ${configDetails.join(", ")} (Response API)`
     )
   );
 

@@ -84,6 +84,16 @@ export async function runResponsesFlow(openAiInstance, options) {
 
     // 8. Логування використаних токенів.
     logUsageFromResponse(completedResponse);
+    if (completedResponse.status === "incomplete") {
+      const reason = completedResponse?.incomplete_details?.reason;
+      console.log(
+        chalk.yellow(
+          `⚠️ API відповідь завершено зі статусом "незавершено"${
+            reason ? ` (причина: ${reason})` : ""
+            }. Спробуйте збільшити OPENAI_MAX_OUTPUT_TOKENS або налаштувати параметри міркування.`
+        )
+      );
+    }
 
     // 9. Читаємо відповідь і додаємо її до історії.
     const assistantReply = extractAssistantReply(completedResponse);
@@ -91,7 +101,13 @@ export async function runResponsesFlow(openAiInstance, options) {
 
     // 10. Виводимо відповідь у консоль.
     console.log(`\n💬 Відповідь асистента: \n ${chalk.cyan.bold(assistantReply)}
-      `);
+    `);
+
+    // console.log(`\n💬 Відповідь асистента: \n ${chalk.cyan.bold(JSON.stringify(completedResponse))}
+      
+    // `);
+
+      
 
     runCount += 1;
   }
