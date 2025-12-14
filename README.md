@@ -1,57 +1,72 @@
-# Open AI assistant
+# OpenAI Assistant
 
-## Description
+Console assistant built on the OpenAI Assistants API for learning and experimentation. It uploads a file, builds a vector store, creates an assistant, and chats in your terminal using that file as context.
 
-A simple implementation of Open AI assistant for study purpose.
-The assistant can:
+## What it does
 
-- Create itself
-- put user message into thread
-- add file to OpenAI to vector store
-- take the file as a contecst and instructions from files
-- base on instructions and file(s) answer to user via console
+- Uploads local files to OpenAI and builds a vector store for retrieval.
+- Creates or reuses an assistant with instructions from `assistant_instructions.md`.
+- Creates a new thread per run, adds your console messages, and runs the assistant on that thread.
+- Prints responses that stay grounded in your uploaded file(s).
 
-## Installation and seting-up
+## Project structure
 
-install project and it's dependencies:
+- `src/index.js` - entrypoint orchestrating setup and the console loop.
+- `src/assistant_manager.js` - finds or creates the assistant and attaches vector stores.
+- `src/file_manager.js` - uploads files and manages vector stores (auto-delete in 7 days by default).
+- `src/thread_manager.js` - creates threads, posts user messages, reads the last assistant reply.
+- `src/run_manager.js` - starts runs on a thread and polls their status.
+- `src/utils.js` - date formatting helpers.
+- `files/` - place your documents and `assistant_instructions.md`.
+
+## Setup
+
+1. Install dependencies
+   ```bash
+   git clone https://github.com/yourusername/openai-assistant.git
+   cd openai-assistant
+   npm install
+   ```
+2. Prepare files
+   - Put your source document(s) in `files/`.
+   - Create `files/assistant_instructions.md` describing the assistant's role and response style.
+3. Configure environment
+   - Copy `.env.examle` to `.env`.
+   - Fill values (filenames include extensions):
+     - `OPENAI_API_KEY` - your OpenAI API key.
+     - `FILE_NAME` - file in `files/` to upload (for example `schedule.docx`).
+     - `FOLDER_NAME` - folder with your files (default `files`).
+     - `ASSISTANT_NAME` - identifier for reuse (for example `Schedule Assistant`).
+     - `OPENAI_MODEL` - model name (for example `gpt-4o-mini-2024-07-18`).
+     - `OPENAI_TEMPERATURE` - response creativity (0-2).
+     - `VECTOR_STORE_NAME` - optional; if omitted a dated name is generated.
+
+## How it works (reasoning flow)
+
+1. Read environment config.
+2. Upload the target file if not already present; create a vector store (old store with the same name is removed).
+3. Find or create the assistant with the `file_search` tool and your instructions attached.
+4. Attach the vector store to the assistant.
+5. Create a new thread for the session.
+6. Loop: read your console input -> add to thread -> run assistant -> poll until complete -> print the last reply.
+
+## Running
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/openai-assistant.git
-
-# Navigate to the project directory
-cd openai-assistant
-
-# Install dependencies
-npm i
-```
-
-## Set-up first run:
-
-1. Put you file into `files` folder
-2. Fill `assistant_instructions.md` file with instruction for the assistant.
-3. [Get the OpenAI API key.](https://platform.openai.com/docs/quickstart#create-and-export-an-api-key)
-4. Make a copy of file `.env.examle` rename it to `.env` and fill it with correct data (tokens, vector store name, file name ... etc.); File name should be WITH EXTENSION! (examp: `my_schedule.docx`).
-
-# Usage
-
-#### Run the project
-
-```
 npm start
 ```
 
-#### Use the project
+Then type messages in the console; the assistant will answer using the uploaded file as context.
 
-1. Follow the instructions in application console.
+## Notes and limits
 
-# Contributing
+- Only one vector store can be attached to an assistant or thread at a time; old stores with the same name are cleared before creation.
+- Vector stores default to auto-delete after 7 days to control storage costs.
+- The legacy Assistants API this project uses is scheduled for retirement on August 26, 2026; plan migrations accordingly.
 
-Guidelines for contributing to the project:
+## Contributing
 
-1. Fork the repository
-2. Create a new branch (git checkout -b feature-branch)
-3. Make your changes
-4. Commit your changes (git commit -m 'Add some feature')
-5. Push to the branch (git push origin feature-branch)
-6. Open a pull request
+1. Fork the repository.
+2. Create a branch (`git checkout -b feature-branch`).
+3. Make changes and commit (`git commit -m "Add feature"`).
+4. Push (`git push origin feature-branch`) and open a pull request.
